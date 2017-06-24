@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title> Prática 2 </title>
+        <meta http-equiv="Content-Language" content="pt-br">
+        <meta charset="utf-8" />
+        <script src="util.js"></script>
+        <script id="vs-code" type="x-shader/x-vertex">
+            attribute vec3 coord;
+            attribute vec3 color;
+            uniform mat4 u_model;
+            uniform mat4 u_proj;
+		//	uniform mat4 v_matrix;
+            varying vec3 vPos;
+            varying vec3 vColor;
+        void main(void) {
+            vColor = color;
+            vPos = coord;
+            gl_PointSize = 9.0;
+            gl_Position = u_proj * u_model * vec4(coord, 1.0);
+        }
+        </script>
+        <script id="fs-code" type="x-shader/x-fragment">
+            precision mediump float;
+            vec3 rgb(float h, float s, float v){
+                float c, x, m;
+                vec3 RGB;
+                c = v * s;
+                x = c * (1.0 - abs( mod( (h/60.0), 2.0 ) - 1.0 ));
+                m = v - c;
+                c += m;
+                x += m;
+                h = mod(h,  360.0);
+                if (h >= 0.0 && h < 60.0) {
+                    RGB = vec3(c, x, 0.0);
+                } else if (h >= 60.0 && h < 120.0) {
+                    RGB = vec3(x, c, 0.0);
+                } else if (h >= 120.0 && h < 180.0) {
+                    RGB = vec3(0.0, c, x);
+                } else if (h >= 180.0 && h < 240.0) {
+                    RGB = vec3(0.0, x, c);
+                } else if (h >= 240.0 && h < 300.0) {
+                    RGB = vec3(x, 0.0, c);
+                } else if (h >= 300.0 && h < 360.0) {
+                    RGB = vec3(c, 0.0, x);
+                }
+                return RGB;
+            }
+            uniform vec4 u_limit;
+            varying vec3 vPos;
+            varying vec3 vColor;
+            void main(void) {
+                vec3 iColor;
+                if (u_limit[0] == u_limit[1]) {
+                    iColor = vColor;
+                } else {
+                    float depth = (u_limit[1] - vPos.z) / (u_limit[1] - u_limit[0]);
+                    float h = u_limit[2] + (u_limit[3] - u_limit[2]) * depth;
+                    float s = 0.8;
+                    float v = 1.0;
+                    iColor = rgb(h, s , v);
+                }
+                gl_FragColor = vec4(iColor, 1.0);
+            }
+        </script> 
+	</head>
+    <body onload="resizeCanvas();"  onresize="resizeCanvas();">
+		
+		
+		<form id="menu" oninput="o_width.value = i_width.value; o_height.value = i_height.value;" onchange="redraw();"style="overflow-y:auto;position:relative;float:right;background:gray;padding:10px;opacity:0.8;z-index:2;"
+>
+            Primitivas:<br>
+            <select id="primitives" > <!-- Seleção da primitiva utilizada para desenho -->
+                <option value="gl.POINTS">Pontos</option>
+                <option value="gl.LINES">Linhas</option>
+                <option value="gl.LINE_STRIP" selected>Linha contínua</option>
+                <option value="gl.TRIANGLES">Triangulos</option>
+                <option value="gl.TRIANGLE_STRIP">Malha tringulada</option>
+                <option value="gl.LINE_LOOP">Polígono aberto</option>
+                <option value="gl.TRIANGLE_FAN">Polígono fechado</option>
+            </select><br><br>
+			
+            Largura:<br>
+            <input type="range" name="i_width" min="1" value="100" oninput="resizeCanvas()" />
+            <output name="o_width">20</output>%<br><br>
+            Altura:<br>
+            <input type="range" name="i_height" min="1" value="100" oninput="resizeCanvas()" />
+            <output name="o_height">20</output>%<br><br>
+			Projeção:<br>
+            <input type="radio" name="projMode" value="ortho" checked onchange="redraw()">
+            Ortográfica<br>
+            <input type="radio" name="projMode" value="perspective" onchange="redraw()">
+            Perspectiva<br><br>
+			Opções:<br>
+            <input type="checkbox" name="hColor" onchange="changeCtrls(); redraw()" checked />
+            Modo hipsométrico<br>
+            <div id="hCtrl">
+                Matiz de base:<br>
+                <input type="number" id="sColor" name="sColor" value="0" min="0" onchange="redraw()" /><br>
+                <label for="eColor">Matiz de topo:<br></label>
+                <input type="number" id="eColor" name="eColor" value="120" max="360" onchange="redraw()" /><br>
+            </div>
+			Dados:<br>
+            <label for="fileUpload">Carregar do arquivo</label>
+            <input type="file" id="fileUpload" onchange="loadFile(this); redraw()"><br><br>
+        </form>
+		<canvas id="app_canvas" onload="resizeCanvas();"  onmousewheel="mouseWheel();" onresize="resizeCanvas();"style="top:50%;left:50%;transform:translate(-50%,-50%);position:absolute;z-index:1;background:black;"></canvas>
+		<script src="app.js"></script>
+		<script src="ply.js"></script>		
+		<p> o arquivo test1.txt exibem três pontos. Podendo exibir um triângulo, por exemplo.</p>
+		<p> O arquibo test2.txt exibem 36 pontos. Podendo exibir um cubo, com a primitiva triângulos, por exemplo.</p>
+		<p> O arquivo test3.txt exibem 96 pontos. Podendo exibir um "F", melhor definido com a primitiva triângulos, por exemplo. </p>
+		<p> O arquivo test4.txt exibem 83420 pontos. Podendo exibir um modelo de um terreno, por exemplo, usando a primitiva linha contínua. </p>
+		<p> O arquivo cube.ply modela um cubo, não há problemas para visualização, é melhor representado pela primitiva triângulos, a distribuição de cores não carece. <p/>
+		<p> O arquivo honolulu.ply modela um relevo, não há problemas para visualização, é melhor representado pela primitiva linhas, pois podemos ver melhor o relevo, a distribuição de cores não carece.<p/>
+		<p> O arquivo suzanna.ply modela um rosto de um macaco, não há problemas para visualização, é melhor representado pela primitiva triângulos e a distribuição de cores não carece.<p/>
+		<p> O arquivo teapot.ply modela um bule de chá, não há problemas para visualização, é melhor representado pela primitiva triângulos e a distribuição de cores não carece.<p/>
+		<p> O arquivo sphere.ply modela uma esfera, não há problemas para visualização, é melhor representado pela primitiva triângulos e a distribuição de cores não carece.<p/>
+		<p> O arquivo thomas.ply modela um coelho, não há problemas para visualização, é melhor representado pela primitiva triângulos e a distribuição de cores não carece.<p/>
+
+		
+    </body>
+	
+</html>
